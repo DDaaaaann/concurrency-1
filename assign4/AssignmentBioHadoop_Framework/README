@@ -1,0 +1,47 @@
+To compile type ./compile.sh
+
+To run without using the Hadoop framework type java -jar nl.uva.AssignmentSequential.jar <query file> <dataset folder> <subtitution matrix> <num of seq> -recordsPerSplit <records per split>
+
+The folder data contains the necessary input files. When you are ready to run your tests, use the FASTA file found in ftp://ftp.ensembl.org/pub/release-69/fasta/homo_sapiens/pep/Homo_sapiens.GRCh37.69.pep.abinitio.fa.gz. After you download it, use gunzip to extract the file and copy it in your HDFS. 
+
+example: 
+java -jar nl.uva.AssignmentMapreduce.jar data/query.fa data/fasta/ data/BLOSUM100 10 data/out -recordsPerSplit 9999
+
+
+To run using the Hadoop framework:
+First copy the data folder to the DFS. To do that type:
+$HADOOP_HOME/bin/hadoop  dfs -copyFromLocal data/ /
+
+$HADOOP_HOME/bin/hadoop  jar <query file> <dataset folder> <subtitution matrix> <num of seq> -recordsPerSplit <records per split>
+
+example: 
+$HADOOP_HOME/bin/hadoop  jar nl.uva.AssignmentMapreduce.jar /data/query.fa /data/fasta/ /data/BLOSUM100 10 /data/out -recordsPerSplit 9999
+
+
+You can also use the qsub_AssignmentBioHadoop_2.sh script.
+example: 
+qsub_AssignmentBioHadoop_2.sh <number of splits>
+
+If you want to count the number of sequences in a FASTA file use:
+$grep ">" *.fa* | wc -l
+
+
+
+What to implement:
+The methods  you need to implement are:
+  * getSplitsForFile in the FastaInputFormat class . This class controls the number of splits on 	input 	data, 	thus the number of mappers to be created. 
+  * next in the FastaRecordReader class. This method must read the appropriate chunks of data from FASTA files and every time it's called return a sequence.
+  * map in the Map class.  In this method if the next method in the FastaRecordReader is implemented correctly then the mapper should get the sequence string at the value parameter. 
+  * reduce in the Reduce class. This method should get the key value pairs emitted by the mappers and write them in the OutputCollector. The stopping condition is when we have received the N most similar sequences  
+
+
+Troubleshooting:
+
+If you the exception
+Exception in thread "main" java.lang.NoSuchMethodError: org.slf4j.spi.LocationAwareLogger.log(Lorg/slf4j/Marker;Ljava/lang/String;ILjava/lang/String;[Ljava/lang/Object;Ljava/lang/Throwable;)
+
+you need to copy the slf4j-api-1.6.4.jar and slf4j-log4j12-1.6.4.jar from the lib folder to $HADOOP_HOME/lib 
+and delete  $HADOOP_HOME/lib/slf4j-api-1.4.3.jar $HADOOP_HOME/lib/slf4j-log4j12-1.4.3.jar
+
+
+

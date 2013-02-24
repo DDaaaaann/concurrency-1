@@ -1,0 +1,52 @@
+PROGNAME = mandel1
+SRCFILES = mandel1.c timer.c
+TARNAME = assign2_1.tgz
+
+RUNARGS = # i_max t_max, increase this when testing on the DAS4!
+NODES = 1 # How many DAS4 nodes
+PROCESSESPERNODE = 1 # How many processes to spawn on one machine.
+
+PRUNARGS = -v -np $(NODES) -$(PROCESSESPERNODE) \
+		   -sge-script $$PRUN_ETC/prun-openmpi
+IMAGEVIEW = display
+CC = gcc
+
+WARNFLAGS = 
+CFLAGS = -std=c99 -fopenmp -ggdb -O2 $(WARNFLAGS) -D_POSIX_C_SOURCE=200112
+LFLAGS = -lm -lrt
+
+# Do some substitution to get a list of .o files from the given .c files.
+OBJFILES = $(patsubst %.c,%.o,$(SRCFILES))
+
+.PHONY: all run runlocal plot clean dist todo
+
+all: $(PROGNAME)
+
+$(PROGNAME): $(OBJFILES)
+	$(CC) $(CFLAGS) -o $@ $^ $(LFLAGS)
+
+%.o: %.c
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+run: $(PROGNAME)
+	prun $(PRUNARGS) $(PROGNAME) $(RUNARGS)
+
+runlocal: $(PROGNAME)
+	mpirun -n $(PROCESSESPERNODE) $(PROGNAME) $(RUNARGS)
+
+plot: result.txt
+	gnuplot plot.gnp
+	$(IMAGEVIEW) plot.png
+
+todo:
+	-@for file in *.c *.h; do \
+		grep -FHnT -e TODO $$file | \
+			sed 's/:[ \t]*\/\//: \/\//' | \
+			sed 's/:[ \t]*\/\*/: \/\*/'; \
+		done; true
+
+dist:
+	tar cvzf $(TARNAME) Makefile *.c *.h data/
+
+clean:
+	rm -fv $(PROGNAME) $(OBJFILES) $(TARNAME) result.txt plot.png
